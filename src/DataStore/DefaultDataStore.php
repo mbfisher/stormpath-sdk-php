@@ -259,7 +259,6 @@ class DefaultDataStore extends Cacheable implements InternalDataStore
             $href = $this->qualify($href);
         }
 
-        var_dump(['data' => $this->toStdClass($resource)]);
         $response = $this->executeRequest(Request::METHOD_POST,
                                           $href,
                                           json_encode($this->toStdClass($resource)),
@@ -327,7 +326,6 @@ class DefaultDataStore extends Cacheable implements InternalDataStore
         }
 
         $propertyNames = $resource->getPropertyNames(true);
-        var_dump(['propertyNames' => $propertyNames]);
 
         $properties = new \stdClass();
 
