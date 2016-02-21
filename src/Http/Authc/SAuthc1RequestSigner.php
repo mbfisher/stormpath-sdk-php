@@ -56,6 +56,10 @@ class SAuthc1RequestSigner implements RequestSigner
 
         // SAuthc1 requires that we sign the Host header so we
         // have to have it in the request by the time we sign.
+        if (!isset($parsedUrl['host'])) {
+            throw new \InvalidArgumentException("Invalid resource URL \"{$request->getResourceUrl()}\"");
+        }
+
         $hostHeader = $parsedUrl['host'];
 
         if (!RequestUtils::isDefaultPort($parsedUrl))

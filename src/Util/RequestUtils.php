@@ -31,6 +31,10 @@ class RequestUtils
      */
     public static function isDefaultPort(array $parsedUrl)
     {
+        if (!isset($parsedUrl['scheme'])) {
+            throw new \InvalidArgumentException("Invalid URL " . json_encode($parsedUrl));
+        }
+
         $scheme = strtolower($parsedUrl['scheme']);
         $port = array_key_exists('port', $parsedUrl) ? $parsedUrl['port'] : $scheme == 'https' ? 443 : 0;
         return $port <= 0 or ($port == 80 and $scheme == 'http') or ($port == 443 and $scheme == 'https');

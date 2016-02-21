@@ -19,9 +19,11 @@ namespace Stormpath\Http;
  * limitations under the License.
  */
 
-use Guzzle\Http\Client;
+use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use Psr\Http\Message\ResponseInterface;
 use Stormpath\Http\Authc\RequestSigner;
-use Guzzle\Http\Message\RequestInterface;
+use Psr\Http\Message\RequestInterface;
 use Stormpath\Http\Authc\SAuthc1RequestSigner;
 
 class HttpClientRequestExecutor implements RequestExecutor
@@ -31,7 +33,31 @@ class HttpClientRequestExecutor implements RequestExecutor
 
     public function __construct(RequestSigner $signer = null)
     {
-        $this->httpClient = new Client();
+        $stack = new HandlerStack();
+        $stack->setHandler(\GuzzleHttp\choose_handler());
+        $stack->push(function (callable $handler) {
+           return function (RequestInterface $request, $options) use ($handler) {
+                return $handler($request, $options)->then(function (ResponseInterface $response) use ($request) {
+                    if (!preg_match('/^[23]/', $response->getStatusCode())) {
+                        echo json_encode([
+                            'request' => [
+                                'method' => $request->getMethod(),
+                                'uri' => $request->getUri()->__toString(),
+                                'headers' => $request->getHeaders(),
+                                'body' => $request->getBody()->__toString()
+                            ],
+                            'response' => [
+                                'status' => $response->getStatusCode(),
+                                'body' => $response->getBody()->__toString()
+                            ]
+                        ]), "\n";
+                    }
+
+                    return $response;
+                });
+           };
+        });
+        $this->httpClient = new Client(['handler' => $stack]);
 
         if (!$signer)
             $signer = new SAuthc1RequestSigner;
@@ -41,7 +67,7 @@ class HttpClientRequestExecutor implements RequestExecutor
 
     public function executeRequest(Request $request, $redirectsLimit = 10)
     {
-        $requestHeaders = $request->getHeaders();
+        $options = [];
 
         $apiKey = $request->getApiKey();
 
@@ -49,37 +75,34 @@ class HttpClientRequestExecutor implements RequestExecutor
         {
             $this->signer->sign($request, $apiKey);
 
-            $this->httpClient->setConfig(array(Client::REQUEST_OPTIONS => array(
-                'allow_redirects' => false,
-                'exceptions' => false, // do not throw exceptions from the client
-                'verify' => false // do not verify SSL certificate
-            )));
-
-            $this->httpClient->setUserAgent($requestHeaders['User-Agent']);
+            $options['allow_redirects'] = false;
+            $options['exceptions'] = false; // do not throw exceptions from the client
+            $options['verify'] = false; // do not verify SSL certificate,
         }
 
-        $httpRequest = $this->httpClient->
-                        createRequest(
-                            $method = $request->getMethod(),
-                            $uri = $request->getResourceUrl(),
-                            $headers = $request->getHeaders(),
-                            $body = $request->getBody());
+        $options['headers'] = $request->getHeaders();
+        $options['query'] = $request->getQueryString();
+        $options['body'] = $request->getBody();
 
-        $this->addQueryString($request->getQueryString(), $httpRequest);
+        $response = $this->httpClient->request(
+            $request->getMethod(),
+            $request->getResourceUrl(),
+            $options
+        );
 
-        $response = $httpRequest->send();
-
-        if ($response->isRedirect() && $redirectsLimit)
+        if ($response->getHeader('Location') && $redirectsLimit)
         {
-            $request->setResourceUrl($response->getHeader('location'));
+            $request->setResourceUrl($response->getHeader('Location')[0]);
             return $this->executeRequest($request, --$redirectsLimit);
 
         }
 
+        $body = $response->getBody();
+
         return new DefaultResponse($response->getStatusCode(),
-                                   $response->getContentType(),
-                                   $response->getBody(true),
-                                   $response->getContentLength());
+                                   $response->getHeader('Content-Type'),
+                                   $body->__toString(),
+                                   $body->getSize());
 
     }
 

@@ -2129,6 +2129,14 @@ You can make your own contributions by forking the <code>dev</code>
 branch, making your changes, and issuing pull-requests on the
 <code>dev</code> branch.
 
+## Set up
+
+$> composer install
+
+Create a free Stormpath account, edit Subscription to allow more than 1 account
+
+Create a .env file with creds
+
 ## Quick Class Diagram
 
 ```
