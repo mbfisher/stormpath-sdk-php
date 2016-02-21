@@ -33,31 +33,32 @@ class HttpClientRequestExecutor implements RequestExecutor
 
     public function __construct(RequestSigner $signer = null)
     {
-        $stack = new HandlerStack();
-        $stack->setHandler(\GuzzleHttp\choose_handler());
-        $stack->push(function (callable $handler) {
-           return function (RequestInterface $request, $options) use ($handler) {
-                return $handler($request, $options)->then(function (ResponseInterface $response) use ($request) {
-                    if (!preg_match('/^[23]/', $response->getStatusCode())) {
-                        echo json_encode([
-                            'request' => [
-                                'method' => $request->getMethod(),
-                                'uri' => $request->getUri()->__toString(),
-                                'headers' => $request->getHeaders(),
-                                'body' => $request->getBody()->__toString()
-                            ],
-                            'response' => [
-                                'status' => $response->getStatusCode(),
-                                'body' => $response->getBody()->__toString()
-                            ]
-                        ]), "\n";
-                    }
-
-                    return $response;
-                });
-           };
-        });
-        $this->httpClient = new Client(['handler' => $stack]);
+//        $stack = new HandlerStack();
+//        $stack->setHandler(\GuzzleHttp\choose_handler());
+//        $stack->push(function (callable $handler) {
+//           return function (RequestInterface $request, $options) use ($handler) {
+//                return $handler($request, $options)->then(function (ResponseInterface $response) use ($request) {
+//                    if (!preg_match('/^[23]/', $response->getStatusCode())) {
+//                        echo json_encode([
+//                            'request' => [
+//                                'method' => $request->getMethod(),
+//                                'uri' => $request->getUri()->__toString(),
+//                                'headers' => $request->getHeaders(),
+//                                'body' => $request->getBody()->__toString()
+//                            ],
+//                            'response' => [
+//                                'status' => $response->getStatusCode(),
+//                                'body' => $response->getBody()->__toString()
+//                            ]
+//                        ]), "\n";
+//                    }
+//
+//                    return $response;
+//                });
+//           };
+//        });
+//        $this->httpClient = new Client(['handler' => $stack]);
+        $this->httpClient = new Client();
 
         if (!$signer)
             $signer = new SAuthc1RequestSigner;
