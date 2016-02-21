@@ -46,5 +46,10 @@
         "ext-memcached": "*",
         "ext-redis": "*",
         "vlucas/phpdotenv": "^2.2"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-guzzle6": "1.14.x-dev"
+        }
     }
 }
